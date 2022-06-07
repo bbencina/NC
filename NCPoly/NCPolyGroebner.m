@@ -157,6 +157,20 @@ NCPolyGroebnerSimplifyObstructions[OBSs_List, TG_List, m_Integer, verboseLevel_I
 
 ];
 
+(* F4 selection function *)
+Clear[SelectionFunction];
+SelectionFunction[obs_] := Module[
+    {OBS=obs, mindeg, mindegOBS},
+    (* get minimal degree *)
+    mindeg = Min[OBS[[All,3]]];
+    (* filter obstructions *)
+    mindegOBS = Select[OBS, #[[3]] == mindeg &];
+    If[ verboseLevel >= 3,
+        Print["> mindegOBS = ", Map[ColumnForm,{mindegOBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, mindegOBS], {3}], mindegOBS[[All,3]]}]];
+    ];
+    Return[mindegOBS];
+];
+
 (* Add to basis *)
 Clear[AddToBasis];
 AddToBasis[g_, tg_, obs_, 
@@ -211,6 +225,7 @@ AddToBasis[g_, tg_, obs_,
   If[ printObstructions, 
       Print["* New set of obstructions:"];
       Print["> OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#,labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]];
+  AAAAA = SelectionFunction[OBS];
   ];
     
   Return[{G,TG,OBS,m,GNodes,GTree}];
@@ -523,6 +538,7 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
      Print["* Current obstructions:"];
              Print["> OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]];
   ];
+  AAAAA = SelectionFunction[OBS];
  
   (* Iterate *)
   k = 0;
@@ -584,6 +600,7 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
 
     (* Remove first term from OBS *)
     OBS = Delete[OBS, l];
+    (* OBS = Complement[OBS, AAAAA]; *)
 
     If[ verboseLevel >= 3,
         Print["* Building S-Polynomial"];
