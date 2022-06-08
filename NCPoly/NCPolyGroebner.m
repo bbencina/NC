@@ -435,14 +435,13 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
   start = Drop[FoldList[Plus, 0, varnum], -1] + 1;
   end = start + varnum - 1;
 
-  (*
      Print["labels = ", labels];
      Print["varnum = ", varnum];
      Print["start = ", start];
      Print["end = ", end];
-  *)
 
   labels = MapThread[Take[labels,{#1,#2}]&, {start, end}];
+     Print["labels = ", labels];
 
   (* Symbolic coefficients? *)
   symbolicCoefficients = 
@@ -607,6 +606,10 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
     ];
 
     (* Construct S-Polynomial *)
+    (*
+    (* Get Left and Right parts of some obstruction: *)
+    SParts = NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
+    *)
     h = Subtract @@ NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
     If [ h =!= 0,
 
