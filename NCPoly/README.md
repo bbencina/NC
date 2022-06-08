@@ -52,5 +52,13 @@ monomials = Flatten[Map[NCPolyToList, polys]]
 ```
 
 * Get monomial with the largest degree.
+
+```Mathematica
+(* Get maximal degree *)
+maxdeg = Max[Map[NCPolyDegree, monomials]];
+(* Select the first monomial with maximal degree *)
+Select[monomials, NCPolyDegree[#] == maxdeg &][[1]]
+```
+
 * For all g in G check whether m = l g r (probably with NCPolySFactors)
 
