@@ -51,7 +51,7 @@ SParts = NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
 monomials = Flatten[Map[NCPolyToList, polys]]
 ```
 
-* Get monomial with the largest degree.
+* ~~Get monomial with the largest degree.~~
 
 ```Mathematica
 (* Get maximal degree *)
