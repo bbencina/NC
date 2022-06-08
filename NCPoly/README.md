@@ -42,7 +42,7 @@ SParts = NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
 * Row echelon form w.r.t the monomial order.
 * Filter elements on whether the leading monomial already appeared.
 
-## SymbolicPreprocessing
+## -> SymbolicPreprocessing
 
 * ~~Extract all monomials from set of polynomials.~~
 
