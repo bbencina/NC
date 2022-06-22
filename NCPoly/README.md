@@ -60,7 +60,7 @@ maxdeg = Max[Map[NCPolyDegree, monomials]];
 Select[monomials, NCPolyDegree[#] == maxdeg &][[1]]
 ```
 
-* For all g in G check whether m = l g r (probably with NCPolySFactors)
+* ~~For all g in G check whether m = l g r (probably with NCPolySFactors)~~
 
 ```Mathematica
 Clear[GetDivisors];
