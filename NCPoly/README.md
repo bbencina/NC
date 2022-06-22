@@ -62,3 +62,21 @@ Select[monomials, NCPolyDegree[#] == maxdeg &][[1]]
 
 * For all g in G check whether m = l g r (probably with NCPolySFactors)
 
+```Mathematica
+Clear[GetDivisors];
+GetDivisors[G_List, m_NCPoly] := Module[
+    {i, OBSi = {}, OBS = {}, d, DIV = {}},
+    For[i = 1, i <= Length[G], i++,
+        OBSi = NCPolySFactors[G[[i]], m];
+        d = NCPolyDegree[m];
+        If[OBSi =!= {},
+            d += Apply[Plus, Map[NCPolyDegree, OBSi[[All, 2]], {2}], {1}];
+            OBS = MapThread[{{i, Length[G] + 1}, #1, #2} &, {OBSi, d}];
+            OBS = OBS[[All, 2]];
+            OBS = Map[NCPolySFactorExpand[#, G[[i]], m] &, OBS];
+            DIV = Join[DIV, OBS[[All, 1]]];
+        ];
+    ];
+    Return[DIV];
+];
+```

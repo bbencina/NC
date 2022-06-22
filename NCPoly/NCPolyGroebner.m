@@ -73,7 +73,7 @@ NCPolyGroebnerObstructions[G_List, j_Integer, simplify_] := Block[
        (* Compute matches *)
        OBSi = NCPolySFactors[G[[i]], G[[j]]];
 
-       (* Print["OBSi = ", OBSi]; *)
+       (* Print["TEST**** OBSi = ", OBSi]; *)
 
        (* Compute degree *)
        d = NCPolyDegree[G[[j]]];
@@ -85,6 +85,7 @@ NCPolyGroebnerObstructions[G_List, j_Integer, simplify_] := Block[
  	   (* add to OBS *)
            (* OBS = Join[OBS, Map[{{i, j}, #}&, OBSi]]; *)
            OBS = Join[OBS, MapThread[{{i, j}, #1, #2}&, {OBSi, d}]];
+  (* Print["> TESTPRETTY*** OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]]; *)
        ];
   ];
 
