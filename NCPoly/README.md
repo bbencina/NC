@@ -38,8 +38,10 @@ SParts = NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
 
 ## -> Reduction
 
-* SymbolicPreprocessing ->
-* Row echelon form w.r.t the monomial order.
+* ~~SymbolicPreprocessing~~ ->
+
+* Row echelon form w.r.t the monomial order. ->
+
 * Filter elements on whether the leading monomial already appeared.
 
 ## -> SymbolicPreprocessing
@@ -80,3 +82,28 @@ GetDivisors[G_List, m_NCPoly] := Module[
     Return[DIV];
 ];
 ```
+
+## -> RowEchelonForm
+
+* ~~Extract all monomials from set of polynomials.~~
+
+```Mathematica
+(* polys is a list of NCPoly objects *)
+monomials = DeleteDuplicates[Flatten[Map[NCPolyToList, polys]]];
+```
+
+* ~~Sort (desc.) monomials w.r.t. the monomial order~~
+
+```Mathematica
+sortedMonomials = Reverse[Sort[monomials]];
+```
+
+* Transform polynomials into rows with coefficients as entries, zero where
+  missing, in the same order as the monomials
+
+* Assemble rows in matrix
+
+* Regular Gauss
+
+* Get polynomials back from non-zero rows where LM is not already in LM(polys)
+
