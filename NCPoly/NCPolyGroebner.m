@@ -172,6 +172,49 @@ SelectionFunction[obs_] := Module[
     Return[mindegOBS];
 ];
 
+(* F4 GetDivisors - helper for SymbolicPreprocessing *)
+Clear[GetDivisors];
+GetDivisors[G_List, m_NCPoly] := Module[
+    {i, OBSi = {}, OBS = {}, d, DIV = {}},
+    For[i = 1, i <= Length[G], i++,
+        OBSi = NCPolySFactors[G[[i]], m];
+        d = NCPolyDegree[m];
+        If[OBSi =!= {},
+            d += Apply[Plus, Map[NCPolyDegree, OBSi[[All, 2]], {2}], {1}];
+            OBS = MapThread[{{i, Length[G] + 1}, #1, #2} &, {OBSi, d}];
+            OBS = OBS[[All, 2]];
+            OBS = Map[NCPolySFactorExpand[#, G[[i]], m] &, OBS];
+            DIV = Join[DIV, OBS[[All, 1]]];
+        ];
+    ];
+    Return[DIV];
+];
+
+(* F4 SymbolicPreprocessing *)
+Clear[SymbolicPreprocessing];
+SymbolicPreprocessing[L_List, g_List] := Module[
+    {F=L, G=g, Don, Mon, maxdeg, m, mDiv},
+    (* extract monomials *)
+    Mon = DeleteDuplicates[Flatten[Map[NCPolyToList, F]]];
+    (* mark leading monomials as done *)
+    Don = DeleteDuplicates[Map[NCPolyLeadingMonomial, F]];
+    Mon = Complement[Mon, Don];
+    (* iterate *)
+    While[Complement[Mon, Don] =!= {},
+        (* select a monomial with maximal degree (first one) and mark it done *)
+        maxdeg = Max[Map[NCPolyDegree, Mon]];
+        m = Select[Mon, NCPolyDegree[#] == maxdeg &][[1]];
+        Don = Join[Don, {m}];
+        Mon = Complement[Mon, {m}];
+        (* find its divisors and add them multiplied to F *)
+        mDiv = GetDivisors[G, m];
+        F = Join[F, mDiv];
+    ];
+    (* delete potential duplicates *)
+    F = DeleteDuplicates[F];
+    Return[F];
+];
+
 (* Add to basis *)
 Clear[AddToBasis];
 AddToBasis[g_, tg_, obs_, 
