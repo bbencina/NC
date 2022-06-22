@@ -184,7 +184,9 @@ GetDivisors[G_List, m_NCPoly] := Module[
             OBS = MapThread[{{i, Length[G] + 1}, #1, #2} &, {OBSi, d}];
             OBS = OBS[[All, 2]];
             OBS = Map[NCPolySFactorExpand[#, G[[i]], m] &, OBS];
-            DIV = Join[DIV, OBS[[All, 1]]];
+            OBS = Select[OBS, #[[2]] - m == 0&];
+            OBS = OBS[[All, 1]];
+            DIV = Join[DIV, OBS];
         ];
     ];
     Return[DIV];
