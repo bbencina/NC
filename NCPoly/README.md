@@ -50,7 +50,8 @@ SParts = NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
 
 ```Mathematica
 (* polys is a list of NCPoly objects *)
-monomials = Flatten[Map[NCPolyToList, polys]]
+terms = Flatten[Map[NCPolyToList, polys]]
+monomials = DeleteDuplicates[Map[NCPoly[ #[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, terms]]
 ```
 
 * ~~Get monomial with the largest degree.~~
@@ -89,7 +90,8 @@ GetDivisors[G_List, m_NCPoly] := Module[
 
 ```Mathematica
 (* polys is a list of NCPoly objects *)
-monomials = DeleteDuplicates[Flatten[Map[NCPolyToList, polys]]];
+terms = Flatten[Map[NCPolyToList, polys]]
+monomials = DeleteDuplicates[Map[NCPoly[ #[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, terms]]
 ```
 
 * ~~Sort (desc.) monomials w.r.t. the monomial order~~
@@ -98,12 +100,35 @@ monomials = DeleteDuplicates[Flatten[Map[NCPolyToList, polys]]];
 sortedMonomials = Reverse[Sort[monomials]];
 ```
 
-* Transform polynomials into rows with coefficients as entries, zero where
-  missing, in the same order as the monomials
+* ~~Transform polynomials into rows with coefficients as entries, zero where
+  missing, in the same order as the monomials and assemble rows in matrix~~
 
-* Assemble rows in matrix
+```Mathematica
+mat = Table[Map[NCPolyCoefficient[L[[i]], #] &, sMon], {i, Length[L]}]
+```
+`Table` is much faster than `For`
 
-* Regular Gauss
+* ~~Regular Gauss~~
 
-* Get polynomials back from non-zero rows where LM is not already in LM(polys)
+```Mathematica
+mat = RowReduce[mat]
+```
 
+* ~~Get polynomials back from non-zero rows where LM is not already in LM(polys)~~
+
+```Mathematica
+(* TODO: optimize this double for-loop!! *)
+newpolys = {};
+For[i = 1, i <= Length[Mat], i++,
+    (* collect together monomials *)
+    ms = {};
+    For[j = 1, j <= Length[Mat[[i]]], j++,
+        If[rMat[[i, j]] =!= 0, ms = Append[ms, rMat[[i, j]] sMon[[j]]];];
+    ];
+    If[ms =!= {}, newpolys = Append[newpolys, ms];];
+];
+(* sum over lists of monomials to get a list of polynomials *)
+newpolys = Map[Total, newpolys]
+(* LM is list of LM(F) *)
+newpolys = Select[newpolys, Not[MemberQ[LM, NCPolyLeadingMonomial[#]]] &]
+```
