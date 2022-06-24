@@ -172,10 +172,11 @@ SelectionFunction[obs_] := Module[
     Return[mindegOBS];
 ];
 
-(* F4 GetDivisors - helper for SymbolicPreprocessing *)
-Clear[GetDivisors];
-GetDivisors[G_List, m_NCPoly] := Module[
+(* helper function for NCPolyF4SymbolicPreprocessing *)
+Clear[NCPolyGetDivisors];
+NCPolyGetDivisors[G_List, m_NCPoly] := Module[
     {i, OBSi = {}, OBS = {}, d, DIV = {}},
+
     For[i = 1, i <= Length[G], i++,
         OBSi = NCPolySFactors[G[[i]], m];
         d = NCPolyDegree[m];
@@ -184,37 +185,57 @@ GetDivisors[G_List, m_NCPoly] := Module[
             OBS = MapThread[{{i, Length[G] + 1}, #1, #2} &, {OBSi, d}];
             OBS = OBS[[All, 2]];
             OBS = Map[NCPolySFactorExpand[#, G[[i]], m] &, OBS];
-            OBS = Select[OBS, #[[2]] - m == 0&];
+            OBS = Select[OBS, #[[2]] - m == 0 &];
             OBS = OBS[[All, 1]];
             DIV = Join[DIV, OBS];
         ];
     ];
-    Return[DIV];
+   Return[DIV];
 ];
 
-(* F4 SymbolicPreprocessing *)
-Clear[SymbolicPreprocessing];
-SymbolicPreprocessing[L_List, g_List] := Module[
-    {F=L, G=g, Don, Mon, maxdeg, m, mDiv},
-    (* extract monomials *)
-    Mon = DeleteDuplicates[Flatten[Map[NCPolyToList, F]]];
-    (* mark leading monomials as done *)
+(* F4 algo - SymbolicPreprocessing *)
+Clear[NCPolyF4SymbolicPreprocessing];
+NCPolyF4SymbolicPreprocessing[L_List, g_List] := Module[
+    {F = L, G = g, Don, Mon, maxdeg, m, mDiv},
+
+    Mon = DeleteDuplicates[Map[NCPoly[ #[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, Flatten[Map[NCPolyToList, F]]]];
     Don = DeleteDuplicates[Map[NCPolyLeadingMonomial, F]];
     Mon = Complement[Mon, Don];
-    (* iterate *)
     While[Complement[Mon, Don] =!= {},
-        (* select a monomial with maximal degree (first one) and mark it done *)
         maxdeg = Max[Map[NCPolyDegree, Mon]];
         m = Select[Mon, NCPolyDegree[#] == maxdeg &][[1]];
         Don = Join[Don, {m}];
         Mon = Complement[Mon, {m}];
-        (* find its divisors and add them multiplied to F *)
-        mDiv = GetDivisors[G, m];
+        mDiv = NCPolyGetDivisors[G, m];
         F = Join[F, mDiv];
     ];
-    (* delete potential duplicates *)
     F = DeleteDuplicates[F];
     Return[F];
+];
+
+(* helper function for NCPolyF4Reduction *)
+Clear[NCPolyRowEchelonForm];
+NCPolyRowEchelonForm[L_List] := Module[
+    {F = L, Mon, sMon, Mat, rMat, nPol, ms},
+
+    Mon = DeleteDuplicates[Map[NCPoly[#[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, Flatten[Map[NCPolyToList, F]]]];
+    sMon = Reverse[Sort[Mon]];
+    Mat = Table[Map[NCPolyCoefficient[F[[i]], #] &, sMon], {i, Length[F]}];
+    rMat = RowReduce[Mat];
+    nPol = Table[Dot[rMat[[i]], sMon], {i, Length[rMat]}];
+    Return[Complement[nPol, {0}]];
+];
+
+(* F4 algo - Reduction *)
+Clear[NCPolyF4Reduction];
+NCPolyF4Reduction[L_List, g_List] := Module[
+    {F = L, G = g, SPF, rSPF, LM, rSPFPlus},
+
+    SPF = NCPolyF4SymbolicPreprocessing[F, G];
+    rSPF = NCPolyRowEchelonForm[SPF];
+    LM = Map[NCPolyLeadingMonomial, SPF];
+    rSPFPlus = Select[rSPF, Not[MemberQ[LM, NCPolyLeadingMonomial[#]]] &];
+    Return[rSPFPlus];
 ];
 
 (* Add to basis *)
