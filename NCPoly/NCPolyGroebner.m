@@ -173,20 +173,31 @@ SelectionFunction[obs_] := Module[
 ];
 
 (* helper function for NCPolyF4SymbolicPreprocessing *)
+(*
+    NCPolyGetDivisors checks whether any of the polynomials in G lead reduces
+the monomial m, as in Faugere's F4 paper, SymbolicPreprocessing, if-condition.
+*)
 Clear[NCPolyGetDivisors];
 NCPolyGetDivisors[G_List, m_NCPoly] := Module[
     {i, OBSi = {}, OBS = {}, d, DIV = {}},
 
     For[i = 1, i <= Length[G], i++,
+        (* obtain possible divisor combinations *)
         OBSi = NCPolySFactors[G[[i]], m];
         d = NCPolyDegree[m];
         If[OBSi =!= {},
             d += Apply[Plus, Map[NCPolyDegree, OBSi[[All, 2]], {2}], {1}];
+            (* assemble divisor combinations *)
             OBS = MapThread[{{i, Length[G] + 1}, #1, #2} &, {OBSi, d}];
+            (* the divisors are really just the second entry *)
             OBS = OBS[[All, 2]];
+            (* construct the product polynomials lgr (and m) *)
             OBS = Map[NCPolySFactorExpand[#, G[[i]], m] &, OBS];
+            (* take only those that don't change m, i.e. m = lgr, not some multiple *)
             OBS = Select[OBS, #[[2]] - m == 0 &];
+            (* the order of arguments in NCPolySFactors implies lgr is the first element *)
             OBS = OBS[[All, 1]];
+            (* add to set *)
             DIV = Join[DIV, OBS];
         ];
     ];
@@ -194,18 +205,27 @@ NCPolyGetDivisors[G_List, m_NCPoly] := Module[
 ];
 
 (* F4 algo - SymbolicPreprocessing *)
+(*
+    A non-commutative version of the SymbolicPreprocessing functions from
+Faugere's original F4 paper.
+*)
 Clear[NCPolyF4SymbolicPreprocessing];
 NCPolyF4SymbolicPreprocessing[L_List, g_List] := Module[
     {F = L, G = g, Don, Mon, maxdeg, m, mDiv},
 
+    (* obtain the monomials with coef 1 *)
     Mon = DeleteDuplicates[Map[NCPoly[ #[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, Flatten[Map[NCPolyToList, F]]]];
+    (* Done set = leading monomials *)
     Don = DeleteDuplicates[Map[NCPolyLeadingMonomial, F]];
     Mon = Complement[Mon, Don];
     While[Complement[Mon, Don] =!= {},
+        (* get a monomials with the largest degree (just the first one) *)
         maxdeg = Max[Map[NCPolyDegree, Mon]];
         m = Select[Mon, NCPolyDegree[#] == maxdeg &][[1]];
+        (* mark it Done *)
         Don = Join[Don, {m}];
         Mon = Complement[Mon, {m}];
+        (* check whether m = lgr for g in G and add these *)
         mDiv = NCPolyGetDivisors[G, m];
         F = Join[F, mDiv];
     ];
@@ -214,26 +234,45 @@ NCPolyF4SymbolicPreprocessing[L_List, g_List] := Module[
 ];
 
 (* helper function for NCPolyF4Reduction *)
+(*
+    This function assembles polynomials into a matrix of coefficients, applies
+the Gauss Reduced Row Echelon Form algorithm, then collects the new
+polynomials.
+*)
 Clear[NCPolyRowEchelonForm];
 NCPolyRowEchelonForm[L_List] := Module[
     {F = L, Mon, sMon, Mat, rMat, nPol, ms},
 
+    (* obtain monomials with coef 1 *)
     Mon = DeleteDuplicates[Map[NCPoly[#[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, Flatten[Map[NCPolyToList, F]]]];
+    (* sort them - so that RowReduce operates wrt the monomial order > *)
     sMon = Reverse[Sort[Mon]];
+    (* assemble the polynomials into matrix rows wrt sMon with coefficients as entries *)
     Mat = Table[Map[NCPolyCoefficient[F[[i]], #] &, sMon], {i, Length[F]}];
+    (* just the regular row reduce *)
     rMat = RowReduce[Mat];
+    (* collect the new polynomials *)
     nPol = Table[Dot[rMat[[i]], sMon], {i, Length[rMat]}];
+    (* since we use table (much faster than 2 for-loops, we have to remove all the zero rows -> zero polynomials *)
     Return[Complement[nPol, {0}]];
 ];
 
 (* F4 algo - Reduction *)
+(*
+    A non-commutative version of the Reduction functions from Faugere's
+original F4 paper.
+*)
 Clear[NCPolyF4Reduction];
 NCPolyF4Reduction[L_List, g_List] := Module[
     {F = L, G = g, SPF, rSPF, LM, rSPFPlus},
 
+    (* apply SymbolicPreprocessing to obtain possible new polynomials for row reduction *)
     SPF = NCPolyF4SymbolicPreprocessing[F, G];
+    (* do the row reduction *)
     rSPF = NCPolyRowEchelonForm[SPF];
+    (* leading monomials *)
     LM = Map[NCPolyLeadingMonomial, SPF];
+    (* collect those polynomials from reduction whose leading monomial is not already in the existing set *)
     rSPFPlus = Select[rSPF, Not[MemberQ[LM, NCPolyLeadingMonomial[#]]] &];
     Return[rSPFPlus];
 ];

@@ -117,7 +117,7 @@ mat = RowReduce[mat]
 * ~~Get polynomials back from non-zero rows where LM is not already in LM(polys)~~
 
 ```Mathematica
-(* TODO: optimize this double for-loop!! *)
+(* TODO: optimize this double for-loop!! - in code with Table *)
 newpolys = {};
 For[i = 1, i <= Length[Mat], i++,
     (* collect together monomials *)
