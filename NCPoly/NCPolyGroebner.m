@@ -85,7 +85,6 @@ NCPolyGroebnerObstructions[G_List, j_Integer, simplify_] := Block[
  	   (* add to OBS *)
            (* OBS = Join[OBS, Map[{{i, j}, #}&, OBSi]]; *)
            OBS = Join[OBS, MapThread[{{i, j}, #1, #2}&, {OBSi, d}]];
-  (* Print["> TESTPRETTY*** OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]]; *)
        ];
   ];
 
@@ -331,7 +330,6 @@ AddToBasis[g_, tg_, obs_,
   If[ printObstructions, 
       Print["* New set of obstructions:"];
       Print["> OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#,labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]];
-  AAAAA = SelectionFunction[OBS];
   ];
     
   Return[{G,TG,OBS,m,GNodes,GTree}];
@@ -541,13 +539,15 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
   start = Drop[FoldList[Plus, 0, varnum], -1] + 1;
   end = start + varnum - 1;
 
+    (*
      Print["labels = ", labels];
      Print["varnum = ", varnum];
      Print["start = ", start];
      Print["end = ", end];
+    *)
 
   labels = MapThread[Take[labels,{#1,#2}]&, {start, end}];
-     Print["labels = ", labels];
+     (* Print["labels = ", labels]; *)
 
   (* Symbolic coefficients? *)
   symbolicCoefficients = 
@@ -643,7 +643,6 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
      Print["* Current obstructions:"];
              Print["> OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]];
   ];
-  AAAAA = SelectionFunction[OBS];
  
   (* Iterate *)
   k = 0;
@@ -666,6 +665,7 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
         (* Print["> TG(", ToString[k], ") = ", ColumnForm[NCPolyDisplay[TG, labels]]]; *)
     ];
 
+    (* here sOBS = SelectionFunction[OBS]; *)
     (* Choose obstruction *)
     l = If[ sortObstructions
        ,
@@ -705,7 +705,7 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
 
     (* Remove first term from OBS *)
     OBS = Delete[OBS, l];
-    (* OBS = Complement[OBS, AAAAA]; *)
+    (* OBS = Complement[OBS, sOBS]; *)
 
     If[ verboseLevel >= 3,
         Print["* Building S-Polynomial"];
