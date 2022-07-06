@@ -171,6 +171,26 @@ SelectionFunction[obs_] := Module[
     Return[mindegOBS];
 ];
 
+(* helper function for the algorithm *)
+
+(* actually get MONIC monomials *)
+Clear[GetMonomials];
+GetMonomials[L_List] := Module[
+    {F = L, Mon},
+
+    Mon = DeleteDuplicates[Map[NCPolyNormalize, Flatten[Map[NCPolyToList, F]]]];
+    Return[Mon];
+];
+
+(* actually get MONIC leading monomials *)
+Clear[GetLeadingMonomials];
+GetLeadingMonomials[L_List] := Module[
+    {F = L, Mon},
+
+    Mon = DeleteDuplicates[Map[NCPolyNormalize, Map[NCPolyLeadingMonomial, F]]];
+    Return[Mon];
+];
+
 (* helper function for NCPolyF4SymbolicPreprocessing *)
 (*
     NCPolyGetDivisors checks whether any of the polynomials in G lead reduces
@@ -213,9 +233,9 @@ NCPolyF4SymbolicPreprocessing[L_List, g_List] := Module[
     {F = L, G = g, Don, Mon, maxdeg, m, mDiv},
 
     (* obtain the monomials with coef 1 *)
-    Mon = DeleteDuplicates[Map[NCPoly[ #[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, Flatten[Map[NCPolyToList, F]]]];
+    Mon = GetMonomials[F];
     (* Done set = leading monomials *)
-    Don = DeleteDuplicates[Map[NCPolyLeadingMonomial, F]];
+    Don = GetLeadingMonomials[F];
     Mon = Complement[Mon, Don];
     While[Complement[Mon, Don] =!= {},
         (* get a monomials with the largest degree (just the first one) *)
@@ -243,7 +263,7 @@ NCPolyRowEchelonForm[L_List] := Module[
     {F = L, Mon, sMon, Mat, rMat, nPol, ms},
 
     (* obtain monomials with coef 1 *)
-    Mon = DeleteDuplicates[Map[NCPoly[#[[1]], <|Keys[#[[2]]][[1]] -> 1|>] &, Flatten[Map[NCPolyToList, F]]]];
+    Mon = GetMonomials[F];
     (* sort them - so that RowReduce operates wrt the monomial order > *)
     sMon = Reverse[Sort[Mon]];
     (* assemble the polynomials into matrix rows wrt sMon with coefficients as entries *)
@@ -270,7 +290,7 @@ NCPolyF4Reduction[L_List, g_List] := Module[
     (* do the row reduction *)
     rSPF = NCPolyRowEchelonForm[SPF];
     (* leading monomials *)
-    LM = Map[NCPolyLeadingMonomial, SPF];
+    LM = GetLeadingMonomials[SPF];
     (* collect those polynomials from reduction whose leading monomial is not already in the existing set *)
     rSPFPlus = Select[rSPF, Not[MemberQ[LM, NCPolyLeadingMonomial[#]]] &];
     Return[rSPFPlus];
@@ -665,8 +685,10 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
         (* Print["> TG(", ToString[k], ") = ", ColumnForm[NCPolyDisplay[TG, labels]]]; *)
     ];
 
-    (* here sOBS = SelectionFunction[OBS]; *)
     (* Choose obstruction *)
+    sOBS = SelectionFunction[OBS];
+    obsdeg = Max[sOBS[[All,3]]];
+    (*
     l = If[ sortObstructions
        ,
         If[ verboseLevel >= 3,
@@ -682,11 +704,17 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
     (* Print["l = ", l]; *)
     ij = Part[OBS, l, 1];
     OBSij = Part[OBS, l, 2];
+    *)
+    smaxj = Max[sOBS[[All, 1]][[All, 2]]];
+    maxj = Max[OBS[[All, 1]][[All, 2]]];
+    (* Print["obsdeg=", obsdeg]; *)
+    (* Print["smaxj=", smaxj]; *)
+    (* Print["maxj=", maxj]; *)
 
-    If[ ij[[2]] > mm,
+    If[ smaxj > mm,
       (* Major iteration reached *)
       kk ++;
-      mm = Part[OBS, -1, 1, 2];
+      mm = maxj;
       If[ verboseLevel >= 1,
         Print["> MAJOR Iteration ", kk, ", ", Length[G], " polys in the basis, ", Length[OBS], " obstructions"];
       ];
@@ -696,27 +724,41 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
     ];
 
     If[ verboseLevel >= 3,
-        Print["* Selecting obstruction OBS(", ij[[1]], ",", ij[[2]], ")"];
+        Print["* Selecting obstructions OBS of degree ", obsdeg];
         If[ printObstructions, 
-            Print["* Current obstructions:"];
-	    Print["> OBS = ", Map[NCPolyDisplay[#,labels]&, OBSij, {2}]];
+            Print["* Current obstructions: "];
+    Print["> sOBS = ", Map[ColumnForm,{sOBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, sOBS], {3}], sOBS[[All,3]]}]];
         ];
     ];
 
     (* Remove first term from OBS *)
-    OBS = Delete[OBS, l];
-    (* OBS = Complement[OBS, sOBS]; *)
+    (* OBS = Delete[OBS, l]; *)
 
+    (* remove selected obstructions *)
+    OBS = Complement[OBS, sOBS];
     If[ verboseLevel >= 3,
-        Print["* Building S-Polynomial"];
+        If[ printObstructions,
+        Print["> remaining OBS = ", Map[ColumnForm,{OBS[[All,1]], Map[NCPolyDisplay[#, labels]&, Map[Part[#, 2]&, OBS], {3}], OBS[[All,3]]}]];
+        ];
     ];
 
     (* Construct S-Polynomial *)
-    (*
-    (* Get Left and Right parts of some obstruction: *)
-    SParts = NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
-    *)
-    h = Subtract @@ NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]];
+
+    (* Get Left and Right parts of the selected obstructions *)
+    SParts = Flatten[Map[NCPolySFactorExpand[#[[2]], G[[#[[1,1]]]], G[[#[[1,2]]]]] &, sOBS]];
+    If[ verboseLevel >= 3,
+        Print["> SParts = ", Map[NCPolyDisplay[#, labels]&, SParts]];
+    ];
+    newPolys = NCPolyF4Reduction[SParts, G];
+    If[ verboseLevel >= 3,
+        Print["> newPolys = ", Map[NCPolyDisplay[#, labels]&, newPolys]];
+    ];
+
+    (* h = Subtract @@ NCPolySFactorExpand[ OBSij, G[[ij[[1]]]], G[[ij[[2]]]]]; *)
+    For[cc=1, cc<=Length[newPolys], cc++,
+    h = newPolys[[cc]];
+    (* temporary hack so this compiles, since there is no real way of knowing which obs generated this *)
+    ij = {1, 1};
     If [ h =!= 0,
 
          If[ printSPolynomials, 
@@ -917,6 +959,7 @@ NCPolyGroebner[{g__NCPoly}, iterations_Integer, opts___Rule] := Block[
              Print["* S-Polynomial was completely reduced and has been removed from the set of obstructions"];
          ];
 
+    ];
     ];
 
   ];
