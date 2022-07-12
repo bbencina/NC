@@ -178,7 +178,9 @@ Clear[GetMonomials];
 GetMonomials[L_List] := Module[
     {F = L, Mon},
 
-    Mon = DeleteDuplicates[Map[NCPolyNormalize, Flatten[Map[NCPolyToList, F]]]];
+    Mon = Flatten[Map[NCPolyToList, F]];
+    Mon = Select[Mon, Not[#[[2, 1]] == 0]&];
+    Mon = DeleteDuplicates[Map[NCPolyNormalize, Mon]];
     Return[Mon];
 ];
 
@@ -187,8 +189,10 @@ Clear[GetLeadingMonomials];
 GetLeadingMonomials[L_List] := Module[
     {F = L, Mon},
 
-    Mon = DeleteDuplicates[Map[NCPolyNormalize, Map[NCPolyLeadingMonomial, F]]];
-    Return[Mon];
+    Mon = Map[NCPolyLeadingMonomial, F];
+    Mon = Select[Mon, Not[#[[2, 1]] == 0]&];
+    Mon = DeleteDuplicates[Map[NCPolyNormalize, Mon]];
+    Return[Complement[Mon,{0}]];
 ];
 
 (* helper function for NCPolyF4SymbolicPreprocessing *)
